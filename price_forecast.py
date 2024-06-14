@@ -22,6 +22,7 @@ from reservoirpy.nodes import Reservoir, Ridge
 from pmdarima.arima import auto_arima
 from statsmodels.tsa.arima.model import ARIMA
 
+
 def calculate_metrics(actual, predicted):
     actual = np.array(actual)
     predicted = np.array(predicted)
@@ -43,6 +44,7 @@ def calculate_metrics(actual, predicted):
 
     return rmse, rnmse, mae, mape, r_squared
 
+
 if __name__ == "__main__":
     if len(sys.argv) < 1:
         print("Usage: python price_forecast.py file1.csv file2.csv ...")
@@ -51,8 +53,9 @@ if __name__ == "__main__":
     for file in sys.argv[1:]:
         data = pd.read_csv(file)
         data.rename(
-            columns={"Reported Date": "Date", "Modal Price (Rs./Quintal)": "Price"}
-        ,inplace=True)
+            columns={"Reported Date": "Date", "Modal Price (Rs./Quintal)": "Price"},
+            inplace=True,
+        )
         data = data[["Date", "Price"]]
         data["Date"] = pd.to_datetime(data["Date"])
 
@@ -152,26 +155,26 @@ if __name__ == "__main__":
 
             results.append([name, rnmse, rmse, mae, mape, r2])
 
-
-        #Running ARIMA
+        # Running ARIMA
         dataset_ex_df = pd.read_csv(file)
         dataset_ex_df.rename(
-            columns={"Reported Date": "Date", "Modal Price (Rs./Quintal)": "Price"}
-        ,inplace=True)
+            columns={"Reported Date": "Date", "Modal Price (Rs./Quintal)": "Price"},
+            inplace=True,
+        )
         dataset_ex_df = dataset_ex_df[["Date", "Price"]]
         dataset_ex_df["Date"] = pd.to_datetime(data["Date"])
         dataset_ex_df = dataset_ex_df.reset_index()
-        dataset_ex_df['Date'] = pd.to_datetime(dataset_ex_df['Date'])
-        dataset_ex_df.set_index('Date', inplace=True)
-        dataset_ex_df = dataset_ex_df['Price'].to_frame()
-        model = auto_arima(dataset_ex_df['Price'], seasonal=False, trace=True)
+        dataset_ex_df["Date"] = pd.to_datetime(dataset_ex_df["Date"])
+        dataset_ex_df.set_index("Date", inplace=True)
+        dataset_ex_df = dataset_ex_df["Price"].to_frame()
+        model = auto_arima(dataset_ex_df["Price"], seasonal=False, trace=True)
 
         # Define the ARIMA model
         def arima_forecast(history):
             # Fit the model
-            model = ARIMA(history, order=(0,1,1))
+            model = ARIMA(history, order=(0, 1, 1))
             model_fit = model.fit()
-            
+
             # Make the prediction
             output = model_fit.forecast()
             yhat = output[0]
@@ -180,7 +183,7 @@ if __name__ == "__main__":
         # Split data into train and test sets
         X = dataset_ex_df.values
         size = int(len(X) * 0.8)
-        train, test = X[0:size], X[size:len(X)]
+        train, test = X[0:size], X[size : len(X)]
 
         # Walk-forward validation
         history = [x for x in train]
@@ -193,12 +196,17 @@ if __name__ == "__main__":
             obs = test[t]
             history.append(obs)
 
-        rmse_arima, rnmse_arima, mae_arima, mape_arima, r_squared_arima = calculate_metrics(test, predictions)
+        rmse_arima, rnmse_arima, mae_arima, mape_arima, r_squared_arima = (
+            calculate_metrics(test, predictions)
+        )
 
-        results.append(["ARIMA", rnmse_arima, rmse_arima, mae_arima, mape_arima, r_squared_arima])
+        results.append(
+            ["ARIMA", rnmse_arima, rmse_arima, mae_arima, mape_arima, r_squared_arima]
+        )
 
         columns = ["Model", "RNMSE", "RMSE", "MAE", "MAPE", "R2"]
         results_df = pd.DataFrame(results, columns=columns)
         print(results_df.to_string(index=False))
         os.makedirs("outputs", exist_ok=True)
-        results_df.to_csv(f"outputs/{file}_results.csv", index=False)
+        filename = file.split("/")[-1].split(".")[0]
+        results_df.to_csv(f"outputs/{filename}_results.csv", index=False)
