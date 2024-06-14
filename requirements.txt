@@ -1,0 +1,8 @@
+pandas
+numpy
+scikit-learn
+tensorflow[and-cuda]
+xgboost
+reservoirpy
+pmdarima
+statsmodels
