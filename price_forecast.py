@@ -19,6 +19,30 @@ from xgboost import XGBRegressor
 from sklearn.linear_model import LinearRegression
 from reservoirpy.nodes import Reservoir, Ridge
 
+from pmdarima.arima import auto_arima
+from statsmodels.tsa.arima.model import ARIMA
+
+def calculate_metrics(actual, predicted):
+    actual = np.array(actual)
+    predicted = np.array(predicted)
+
+    # RMSE
+    rmse = np.sqrt(mean_squared_error(actual, predicted))
+
+    # Relative RMSE (RRMSE)
+    rnmse = rmse / (np.max(actual) - np.min(actual))
+
+    # MAE
+    mae = mean_absolute_error(actual, predicted)
+
+    # MAPE
+    mape = np.mean(np.abs((actual - predicted) / actual)) * 100
+
+    # R-squared
+    r_squared = r2_score(actual, predicted)
+
+    return rmse, rnmse, mae, mape, r_squared
+
 if __name__ == "__main__":
     if len(sys.argv) < 1:
         print("Usage: python price_forecast.py file1.csv file2.csv ...")
@@ -28,11 +52,11 @@ if __name__ == "__main__":
         data = pd.read_csv(file)
         data.rename(
             columns={"Reported Date": "Date", "Modal Price (Rs./Quintal)": "Price"}
-        )
+        ,inplace=True)
         data = data[["Date", "Price"]]
-        data["Date"] = pd.to_datetime(data["Date"], format="%d-%b-%y")
+        data["Date"] = pd.to_datetime(data["Date"])
 
-        data.head()
+        print(data.head())
 
         train_data, test_data = train_test_split(data, test_size=0.1, shuffle=False)
 
@@ -56,53 +80,53 @@ if __name__ == "__main__":
 
         models = []
 
-        # MLP
-        mlp_model = Sequential()
-        mlp_model.add(Dense(128, input_dim=X_train.shape[1], activation="relu"))
-        mlp_model.add(Dense(32, activation="relu"))
-        mlp_model.add(Dense(1))
-        mlp_model.compile(optimizer="adam", loss="mse")
-        mlp_model.fit(X_train, y_train, epochs=50, batch_size=32)
-        models.append(("MLP", mlp_model))
+        # # MLP
+        # mlp_model = Sequential()
+        # mlp_model.add(Dense(128, input_dim=X_train.shape[1], activation="relu"))
+        # mlp_model.add(Dense(32, activation="relu"))
+        # mlp_model.add(Dense(1))
+        # mlp_model.compile(optimizer="adam", loss="mse")
+        # mlp_model.fit(X_train, y_train, epochs=50, batch_size=32)
+        # models.append(("MLP", mlp_model))
 
-        # GRU
-        gru_model = Sequential()
-        gru_model.add(GRU(128, input_shape=(X_train.shape[1], 1)))
-        gru_model.add(Dense(1))
-        gru_model.compile(optimizer="adam", loss="mse")
-        gru_model.fit(X_train, y_train, epochs=50, batch_size=32)
-        models.append(("GRU", gru_model))
+        # # GRU
+        # gru_model = Sequential()
+        # gru_model.add(GRU(128, input_shape=(X_train.shape[1], 1)))
+        # gru_model.add(Dense(1))
+        # gru_model.compile(optimizer="adam", loss="mse")
+        # gru_model.fit(X_train, y_train, epochs=50, batch_size=32)
+        # models.append(("GRU", gru_model))
 
-        # LSTM
-        lstm_model = Sequential()
-        lstm_model.add(LSTM(128, input_shape=(X_train.shape[1], 1)))
-        lstm_model.add(Dense(1))
-        lstm_model.compile(optimizer="adam", loss="mse")
-        lstm_model.fit(X_train, y_train, epochs=50, batch_size=32)
-        models.append(("LSTM", lstm_model))
+        # # LSTM
+        # lstm_model = Sequential()
+        # lstm_model.add(LSTM(128, input_shape=(X_train.shape[1], 1)))
+        # lstm_model.add(Dense(1))
+        # lstm_model.compile(optimizer="adam", loss="mse")
+        # lstm_model.fit(X_train, y_train, epochs=50, batch_size=32)
+        # models.append(("LSTM", lstm_model))
 
-        # RNN
-        rnn_model = Sequential()
-        rnn_model.add(SimpleRNN(128, input_shape=(X_train.shape[1], 1)))
-        rnn_model.add(Dense(1))
-        rnn_model.compile(optimizer="adam", loss="mse")
-        rnn_model.fit(X_train, y_train, epochs=50, batch_size=32)
-        models.append(("RNN", rnn_model))
+        # # RNN
+        # rnn_model = Sequential()
+        # rnn_model.add(SimpleRNN(128, input_shape=(X_train.shape[1], 1)))
+        # rnn_model.add(Dense(1))
+        # rnn_model.compile(optimizer="adam", loss="mse")
+        # rnn_model.fit(X_train, y_train, epochs=50, batch_size=32)
+        # models.append(("RNN", rnn_model))
 
-        # XGBoost
-        xgb_model = XGBRegressor()
-        xgb_model.fit(X_train, y_train)
-        models.append(("XGBoost", xgb_model))
+        # # XGBoost
+        # xgb_model = XGBRegressor()
+        # xgb_model.fit(X_train, y_train)
+        # models.append(("XGBoost", xgb_model))
 
-        # LinearRegression
-        linear_model = LinearRegression()
-        linear_model.fit(X_train, y_train)
-        models.append(("LinearRegression", linear_model))
+        # # LinearRegression
+        # linear_model = LinearRegression()
+        # linear_model.fit(X_train, y_train)
+        # models.append(("LinearRegression", linear_model))
 
-        # SVR
-        svr_model = SVR(kernel="rbf", gamma="scale", C=1.0, epsilon=0.1)
-        svr_model.fit(X_train, y_train)
-        models.append(("SVR", svr_model))
+        # # SVR
+        # svr_model = SVR(kernel="rbf", gamma="scale", C=1.0, epsilon=0.1)
+        # svr_model.fit(X_train, y_train)
+        # models.append(("SVR", svr_model))
 
         # ESN
         # reservoir = Reservoir(reservoir_size=1000, lr=0.3, sr=0.8)
@@ -127,6 +151,51 @@ if __name__ == "__main__":
             rnmse = rmse / (np.max(y_test) - np.min(y_test))
 
             results.append([name, rnmse, rmse, mae, mape, r2])
+
+
+        #Running ARIMA
+        dataset_ex_df = pd.read_csv(file)
+        dataset_ex_df.rename(
+            columns={"Reported Date": "Date", "Modal Price (Rs./Quintal)": "Price"}
+        ,inplace=True)
+        dataset_ex_df = dataset_ex_df[["Date", "Price"]]
+        dataset_ex_df["Date"] = pd.to_datetime(data["Date"])
+        dataset_ex_df = dataset_ex_df.reset_index()
+        dataset_ex_df['Date'] = pd.to_datetime(dataset_ex_df['Date'])
+        dataset_ex_df.set_index('Date', inplace=True)
+        dataset_ex_df = dataset_ex_df['Price'].to_frame()
+        model = auto_arima(dataset_ex_df['Price'], seasonal=False, trace=True)
+
+        # Define the ARIMA model
+        def arima_forecast(history):
+            # Fit the model
+            model = ARIMA(history, order=(0,1,1))
+            model_fit = model.fit()
+            
+            # Make the prediction
+            output = model_fit.forecast()
+            yhat = output[0]
+            return yhat
+
+        # Split data into train and test sets
+        X = dataset_ex_df.values
+        size = int(len(X) * 0.8)
+        train, test = X[0:size], X[size:len(X)]
+
+        # Walk-forward validation
+        history = [x for x in train]
+        predictions = list()
+        for t in range(len(test)):
+            # Generate a prediction
+            yhat = arima_forecast(history)
+            predictions.append(yhat)
+            # Add the predicted value to the training set
+            obs = test[t]
+            history.append(obs)
+
+        rmse_arima, rnmse_arima, mae_arima, mape_arima, r_squared_arima = calculate_metrics(test, predictions)
+
+        results.append(["ARIMA", rnmse_arima, rmse_arima, mae_arima, mape_arima, r_squared_arima])
 
         columns = ["Model", "RNMSE", "RMSE", "MAE", "MAPE", "R2"]
         results_df = pd.DataFrame(results, columns=columns)
