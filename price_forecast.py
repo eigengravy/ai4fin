@@ -190,6 +190,14 @@ if __name__ == "__main__":
         size = int(len(X) * 0.8)
         train, test = X[0:size], X[size : len(X)]
 
+        scaler = MinMaxScaler()
+        train["Price"] = scaler.fit_transform(
+            train["Price"].values.reshape(-1, 1)
+        ).ravel()
+        test["Price"] = scaler.transform(
+            test["Price"].values.reshape(-1, 1)
+        ).ravel()
+
         # Walk-forward validation
         history = [x for x in train]
         predictions = list()
