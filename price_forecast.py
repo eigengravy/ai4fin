@@ -198,8 +198,8 @@ if __name__ == "__main__":
             yhat = arima_forecast(history)
             predictions.append(yhat)
             # Add the predicted value to the training set
-            obs = test[t]
-            history.append(obs)
+            # obs = test[t]
+            # history.append(obs)
 
         rmse_arima, rnmse_arima, mae_arima, mape_arima, r_squared_arima = (
             calculate_metrics(test, predictions)
