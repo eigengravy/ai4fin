@@ -89,59 +89,59 @@ if __name__ == "__main__":
         models = []
 
         # MLP
-        mlp_model = Sequential()
-        mlp_model.add(Dense(128, input_dim=X_train.shape[1], activation="relu"))
-        mlp_model.add(Dense(32, activation="relu"))
-        mlp_model.add(Dense(1))
-        mlp_model.compile(optimizer="adam", loss="mse")
-        mlp_model.fit(X_train, y_train, epochs=50, batch_size=32)
-        models.append(("MLP", mlp_model))
+        # mlp_model = Sequential()
+        # mlp_model.add(Dense(128, input_dim=X_train.shape[1], activation="relu"))
+        # mlp_model.add(Dense(32, activation="relu"))
+        # mlp_model.add(Dense(1))
+        # mlp_model.compile(optimizer="adam", loss="mse")
+        # mlp_model.fit(X_train, y_train, epochs=50, batch_size=32)
+        # models.append(("MLP", mlp_model))
 
-        # GRU
-        gru_model = Sequential()
-        gru_model.add(GRU(128, input_shape=(X_train.shape[1], 1)))
-        gru_model.add(Dense(1))
-        gru_model.compile(optimizer="adam", loss="mse")
-        gru_model.fit(X_train, y_train, epochs=50, batch_size=32)
-        models.append(("GRU", gru_model))
+        # # GRU
+        # gru_model = Sequential()
+        # gru_model.add(GRU(128, input_shape=(X_train.shape[1], 1)))
+        # gru_model.add(Dense(1))
+        # gru_model.compile(optimizer="adam", loss="mse")
+        # gru_model.fit(X_train, y_train, epochs=50, batch_size=32)
+        # models.append(("GRU", gru_model))
 
-        # LSTM
-        lstm_model = Sequential()
-        lstm_model.add(LSTM(128, input_shape=(X_train.shape[1], 1)))
-        lstm_model.add(Dense(1))
-        lstm_model.compile(optimizer="adam", loss="mse")
-        lstm_model.fit(X_train, y_train, epochs=50, batch_size=32)
-        models.append(("LSTM", lstm_model))
+        # # LSTM
+        # lstm_model = Sequential()
+        # lstm_model.add(LSTM(128, input_shape=(X_train.shape[1], 1)))
+        # lstm_model.add(Dense(1))
+        # lstm_model.compile(optimizer="adam", loss="mse")
+        # lstm_model.fit(X_train, y_train, epochs=50, batch_size=32)
+        # models.append(("LSTM", lstm_model))
 
-        # RNN
-        rnn_model = Sequential()
-        rnn_model.add(SimpleRNN(128, input_shape=(X_train.shape[1], 1)))
-        rnn_model.add(Dense(1))
-        rnn_model.compile(optimizer="adam", loss="mse")
-        rnn_model.fit(X_train, y_train, epochs=50, batch_size=32)
-        models.append(("RNN", rnn_model))
+        # # RNN
+        # rnn_model = Sequential()
+        # rnn_model.add(SimpleRNN(128, input_shape=(X_train.shape[1], 1)))
+        # rnn_model.add(Dense(1))
+        # rnn_model.compile(optimizer="adam", loss="mse")
+        # rnn_model.fit(X_train, y_train, epochs=50, batch_size=32)
+        # models.append(("RNN", rnn_model))
 
-        # XGBoost
-        xgb_model = XGBRegressor()
-        xgb_model.fit(X_train, y_train)
-        models.append(("XGBoost", xgb_model))
+        # # XGBoost
+        # xgb_model = XGBRegressor()
+        # xgb_model.fit(X_train, y_train)
+        # models.append(("XGBoost", xgb_model))
 
-        # LinearRegression
-        linear_model = LinearRegression()
-        linear_model.fit(X_train, y_train)
-        models.append(("LinearRegression", linear_model))
+        # # LinearRegression
+        # linear_model = LinearRegression()
+        # linear_model.fit(X_train, y_train)
+        # models.append(("LinearRegression", linear_model))
 
-        # SVR
-        svr_model = SVR(kernel="rbf", gamma="scale", C=1.0, epsilon=0.1)
-        svr_model.fit(X_train, y_train)
-        models.append(("SVR", svr_model))
+        # # SVR
+        # svr_model = SVR(kernel="rbf", gamma="scale", C=1.0, epsilon=0.1)
+        # svr_model.fit(X_train, y_train)
+        # models.append(("SVR", svr_model))
 
-        # ESN
-        reservoir = Reservoir(units=5000, lr=0.3, sr=0.8)
-        ridge = Ridge(ridge=1e-7)
-        esn = reservoir >> ridge
-        esn.fit(X_train, y_train.reshape(-1, 1))
-        models.append(("ESN", esn))
+        # # ESN
+        # reservoir = Reservoir(units=5000, lr=0.3, sr=0.8)
+        # ridge = Ridge(ridge=1e-7)
+        # esn = reservoir >> ridge
+        # esn.fit(X_train, y_train.reshape(-1, 1))
+        # models.append(("ESN", esn))
 
         results = []
         for name, model in models:
@@ -167,7 +167,7 @@ if __name__ == "__main__":
             inplace=True,
         )
         dataset_ex_df = dataset_ex_df[["Date", "Price"]]
-        dataset_ex_df["Date"] = pd.to_datetime(data["Date"])
+        dataset_ex_df["Date"] = pd.to_datetime(dataset_ex_df["Date"])
         dataset_ex_df = dataset_ex_df.reset_index()
         dataset_ex_df["Date"] = pd.to_datetime(dataset_ex_df["Date"])
         dataset_ex_df.set_index("Date", inplace=True)
@@ -188,15 +188,27 @@ if __name__ == "__main__":
         # Split data into train and test sets
         X = dataset_ex_df.values
         size = int(len(X) * 0.8)
-        train, test = X[0:size], X[size : len(X)]
+        train, test = list(X[0:size]), list(X[size : len(X)])
 
-        scaler = MinMaxScaler()
-        train["Price"] = scaler.fit_transform(
-            train["Price"].values.reshape(-1, 1)
-        ).ravel()
-        test["Price"] = scaler.transform(
-            test["Price"].values.reshape(-1, 1)
-        ).ravel()
+        def min_max_scale_list(data_list):
+            # Check if the input is a list
+            if not isinstance(data_list, list):
+                raise ValueError("Input must be a list")
+            
+            # Reshape the data to fit the scaler's requirements
+            data_array = np.array(data_list).reshape(-1, 1)
+            
+            # Initialize the scaler
+            scaler = MinMaxScaler()
+            
+            # Fit and transform the data
+            scaled_data = scaler.fit_transform(data_array).ravel()
+            
+            # Return the scaled data as a list
+            return scaled_data.tolist()
+
+        train = min_max_scale_list(train)
+        test = min_max_scale_list(test)
 
         # Walk-forward validation
         history = [x for x in train]
