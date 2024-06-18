@@ -45,13 +45,24 @@ def calculate_metrics(actual, predicted):
     return rmse, rnmse, mae, mape, r_squared
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
+#     files = os.listdir("./data")
+#     finalStatement = "python3 price_forecast.py "
+#     for f in files:
+#         if f == ".DS_Store":
+#             continue
+#         finalStatement += f 
+#         finalStatement += " "
+#     finalStatement = finalStatement[:-1]
+#     print(finalStatement)
+
+if __name__ == '__main__':
     if len(sys.argv) < 1:
         print("Usage: python price_forecast.py file1.csv file2.csv ...")
         sys.exit(1)
 
     for file in sys.argv[1:]:
-        data = pd.read_csv(file)
+        data = pd.read_csv("./data/" + file)
         data.rename(
             columns={"Reported Date": "Date", "Modal Price (Rs./Quintal)": "Price"},
             inplace=True,
@@ -161,7 +172,7 @@ if __name__ == "__main__":
             results.append([name, rnmse, rmse, mae, mape, r2])
 
         # Running ARIMA
-        dataset_ex_df = pd.read_csv(file)
+        dataset_ex_df = pd.read_csv("./data/" + file)
         dataset_ex_df.rename(
             columns={"Reported Date": "Date", "Modal Price (Rs./Quintal)": "Price"},
             inplace=True,
