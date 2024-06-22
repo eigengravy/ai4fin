@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 
-files = os.listdir("./outputs 2/")
+files = os.listdir("./outputs/")
     
 titles = ["Commodity", "MLP", "GRU", "LSTM", "RNN", "XGBoost", "Linear Regression", "SVR", "ESN", "ARIMA"]
 rmse = []
@@ -12,7 +12,7 @@ mape = []
 for file in files:
     if file == ".DS_Store":
         continue
-    df = pd.read_csv("./outputs 2/" + file)
+    df = pd.read_csv("./outputs/" + file)
     commodity = file[:-12]
     rmse_col = [commodity] + df.iloc[:, 2].values.tolist()
     rnmse_col = [commodity] + df.iloc[:, 1].values.tolist()

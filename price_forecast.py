@@ -45,16 +45,9 @@ def calculate_metrics(actual, predicted):
     return rmse, rnmse, mae, mape, r_squared
 
 
-# if __name__ == "__main__":
-#     files = os.listdir("./data")
-#     finalStatement = "python3 price_forecast.py "
-#     for f in files:
-#         if f == ".DS_Store":
-#             continue
-#         finalStatement += f 
-#         finalStatement += " "
-#     finalStatement = finalStatement[:-1]
-#     print(finalStatement)
+#python statement to run with all the files
+#python3 price_forecast.py Turmeric_Maharashtra.csv Mustard_Rajasthan.csv Paddy_Chattisgarh.csv Greengram_UP.csv Cotton_Gujarat.csv DryChillies_AP.csv KabuliChana_MP.csv Sesamum_Gujarat.csv Cumin_Gujarat.csv Soybean_MP.csv Potato_UP.csv Groundnut_Guj.csv Jowar_Maharashtra.csv Lentil_MP.csv Maize_Chattisgarh.csv Arhar_Maharashtra.csv Onion_Maharashtra.csv Tomato_UP.csv Bengalgram_MP.csv Wheat_UP.csv Ragi_Karnataka.csv Coriander_Gujarat.csv Bajra_Guj.csv
+
 
 if __name__ == '__main__':
     if len(sys.argv) < 1:
@@ -72,104 +65,104 @@ if __name__ == '__main__':
 
         print(data.head())
 
-        train_data, test_data = train_test_split(data, test_size=0.2, shuffle=False)
+        # train_data, test_data = train_test_split(data, test_size=0.2, shuffle=False)
 
-        scaler = MinMaxScaler()
-        train_data["Price"] = scaler.fit_transform(
-            train_data["Price"].values.reshape(-1, 1)
-        ).ravel()
-        test_data["Price"] = scaler.transform(
-            test_data["Price"].values.reshape(-1, 1)
-        ).ravel()
+        # scaler = MinMaxScaler()
+        # train_data["Price"] = scaler.fit_transform(
+        #     train_data["Price"].values.reshape(-1, 1)
+        # ).ravel()
+        # test_data["Price"] = scaler.transform(
+        #     test_data["Price"].values.reshape(-1, 1)
+        # ).ravel()
 
-        def create_sequences(data, window_size):
-            X, y = [], []
-            for i in range(window_size, len(data)):
-                X.append(data[i - window_size : i])
-                y.append(data[i])
-            return np.array(X), np.array(y)
+        # def create_sequences(data, window_size):
+        #     X, y = [], []
+        #     for i in range(window_size, len(data)):
+        #         X.append(data[i - window_size : i])
+        #         y.append(data[i])
+        #     return np.array(X), np.array(y)
 
-        window_size = len(test_data) // 10
-        X_train, y_train = create_sequences(
-            train_data["Price"].values, window_size=window_size
-        )
-        X_test, y_test = create_sequences(
-            test_data["Price"].values, window_size=window_size
-        )
+        # window_size = len(test_data) // 10
+        # X_train, y_train = create_sequences(
+        #     train_data["Price"].values, window_size=window_size
+        # )
+        # X_test, y_test = create_sequences(
+        #     test_data["Price"].values, window_size=window_size
+        # )
 
-        models = []
+        # models = []
 
-        # MLP
-        mlp_model = Sequential()
-        mlp_model.add(Dense(128, input_dim=X_train.shape[1], activation="relu"))
-        mlp_model.add(Dense(32, activation="relu"))
-        mlp_model.add(Dense(1))
-        mlp_model.compile(optimizer="adam", loss="mse")
-        mlp_model.fit(X_train, y_train, epochs=50, batch_size=32)
-        models.append(("MLP", mlp_model))
+        # # MLP
+        # mlp_model = Sequential()
+        # mlp_model.add(Dense(128, input_dim=X_train.shape[1], activation="relu"))
+        # mlp_model.add(Dense(32, activation="relu"))
+        # mlp_model.add(Dense(1))
+        # mlp_model.compile(optimizer="adam", loss="mse")
+        # mlp_model.fit(X_train, y_train, epochs=50, batch_size=32)
+        # models.append(("MLP", mlp_model))
 
-        # GRU
-        gru_model = Sequential()
-        gru_model.add(GRU(128, input_shape=(X_train.shape[1], 1)))
-        gru_model.add(Dense(1))
-        gru_model.compile(optimizer="adam", loss="mse")
-        gru_model.fit(X_train, y_train, epochs=50, batch_size=32)
-        models.append(("GRU", gru_model))
+        # # GRU
+        # gru_model = Sequential()
+        # gru_model.add(GRU(128, input_shape=(X_train.shape[1], 1)))
+        # gru_model.add(Dense(1))
+        # gru_model.compile(optimizer="adam", loss="mse")
+        # gru_model.fit(X_train, y_train, epochs=50, batch_size=32)
+        # models.append(("GRU", gru_model))
 
-        # LSTM
-        lstm_model = Sequential()
-        lstm_model.add(LSTM(128, input_shape=(X_train.shape[1], 1)))
-        lstm_model.add(Dense(1))
-        lstm_model.compile(optimizer="adam", loss="mse")
-        lstm_model.fit(X_train, y_train, epochs=50, batch_size=32)
-        models.append(("LSTM", lstm_model))
+        # # LSTM
+        # lstm_model = Sequential()
+        # lstm_model.add(LSTM(128, input_shape=(X_train.shape[1], 1)))
+        # lstm_model.add(Dense(1))
+        # lstm_model.compile(optimizer="adam", loss="mse")
+        # lstm_model.fit(X_train, y_train, epochs=50, batch_size=32)
+        # models.append(("LSTM", lstm_model))
 
-        # RNN
-        rnn_model = Sequential()
-        rnn_model.add(SimpleRNN(128, input_shape=(X_train.shape[1], 1)))
-        rnn_model.add(Dense(1))
-        rnn_model.compile(optimizer="adam", loss="mse")
-        rnn_model.fit(X_train, y_train, epochs=50, batch_size=32)
-        models.append(("RNN", rnn_model))
+        # # RNN
+        # rnn_model = Sequential()
+        # rnn_model.add(SimpleRNN(128, input_shape=(X_train.shape[1], 1)))
+        # rnn_model.add(Dense(1))
+        # rnn_model.compile(optimizer="adam", loss="mse")
+        # rnn_model.fit(X_train, y_train, epochs=50, batch_size=32)
+        # models.append(("RNN", rnn_model))
 
-        # XGBoost
-        xgb_model = XGBRegressor()
-        xgb_model.fit(X_train, y_train)
-        models.append(("XGBoost", xgb_model))
+        # # XGBoost
+        # xgb_model = XGBRegressor()
+        # xgb_model.fit(X_train, y_train)
+        # models.append(("XGBoost", xgb_model))
 
-        # LinearRegression
-        linear_model = LinearRegression()
-        linear_model.fit(X_train, y_train)
-        models.append(("LinearRegression", linear_model))
+        # # LinearRegression
+        # linear_model = LinearRegression()
+        # linear_model.fit(X_train, y_train)
+        # models.append(("LinearRegression", linear_model))
 
-        # SVR
-        svr_model = SVR(kernel="rbf", gamma="scale", C=1.0, epsilon=0.1)
-        svr_model.fit(X_train, y_train)
-        models.append(("SVR", svr_model))
+        # # SVR
+        # svr_model = SVR(kernel="rbf", gamma="scale", C=1.0, epsilon=0.1)
+        # svr_model.fit(X_train, y_train)
+        # models.append(("SVR", svr_model))
 
-        # ESN
-        reservoir = Reservoir(units=5000, lr=0.3, sr=0.8)
-        ridge = Ridge(ridge=1e-7)
-        esn = reservoir >> ridge
-        esn.fit(X_train, y_train.reshape(-1, 1))
-        models.append(("ESN", esn))
+        # # ESN
+        # reservoir = Reservoir(units=5000, lr=0.3, sr=0.8)
+        # ridge = Ridge(ridge=1e-7)
+        # esn = reservoir >> ridge
+        # esn.fit(X_train, y_train.reshape(-1, 1))
+        # models.append(("ESN", esn))
 
         results = []
-        for name, model in models:
-            if name in ["MLP", "XGBoost", "LinearRegression", "SVR"]:
-                y_pred = model.predict(X_test)
-            elif name == "ESN":
-                y_pred = model.run(X_test)
-            else:
-                y_pred = model.predict(X_test)
+        # for name, model in models:
+        #     if name in ["MLP", "XGBoost", "LinearRegression", "SVR"]:
+        #         y_pred = model.predict(X_test)
+        #     elif name == "ESN":
+        #         y_pred = model.run(X_test)
+        #     else:
+        #         y_pred = model.predict(X_test)
 
-            rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-            mae = mean_absolute_error(y_test, y_pred)
-            mape = mean_absolute_percentage_error(y_test, y_pred) * 100
-            r2 = r2_score(y_test, y_pred)
-            rnmse = rmse / (np.max(y_test) - np.min(y_test))
+        #     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+        #     mae = mean_absolute_error(y_test, y_pred)
+        #     mape = mean_absolute_percentage_error(y_test, y_pred) * 100
+        #     r2 = r2_score(y_test, y_pred)
+        #     rnmse = rmse / (np.max(y_test) - np.min(y_test))
 
-            results.append([name, rnmse, rmse, mae, mape, r2])
+        #     results.append([name, rnmse, rmse, mae, mape, r2])
 
         # Running ARIMA
         dataset_ex_df = pd.read_csv("./data/" + file)
@@ -232,14 +225,21 @@ if __name__ == '__main__':
             # obs = test[t]
             # history.append(obs)
 
-        rmse_arima, rnmse_arima, mae_arima, mape_arima, r_squared_arima = (
-            calculate_metrics(test, predictions)
-        )
+        # rmse_arima, rnmse_arima, mae_arima, mape_arima, r_squared_arima = (
+        #     calculate_metrics(test, predictions)
+        # )
+
+        # arima_mape = mean_absolute_percentage_error(test, predictions)
+
+        rmse_arima = np.sqrt(mean_squared_error(test, predictions))
+        mae_arima = mean_absolute_error(test, predictions)
+        mape_arima = mean_absolute_percentage_error(test, predictions) * 100
+        r_squared_arima = r2_score(test, predictions)
+        rnmse_arima = rmse_arima / (np.max(test) - np.min(predictions))
 
         results.append(
             ["ARIMA", rnmse_arima, rmse_arima, mae_arima, mape_arima, r_squared_arima]
         )
-
         columns = ["Model", "RNMSE", "RMSE", "MAE", "MAPE", "R2"]
         results_df = pd.DataFrame(results, columns=columns)
         print(results_df.to_string(index=False))

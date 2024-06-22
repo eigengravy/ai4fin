@@ -1,3 +1,9 @@
 data/
 outputs/
 .DS_Store
+formatted_results/
+formatted_results.zip
+arima_formatting.py
+arima_mape_values.csv
+descriptive_statistics.csv
+historical_prices
