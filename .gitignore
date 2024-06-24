@@ -1,6 +1,6 @@
 data/
 outputs/
-.DS_Store
+*/.DS_Store
 formatted_results/
 formatted_results.zip
 arima_formatting.py
