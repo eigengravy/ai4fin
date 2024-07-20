@@ -3,7 +3,6 @@ import sys
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import (
     mean_squared_error,
     mean_absolute_error,
@@ -45,11 +44,11 @@ def calculate_metrics(actual, predicted):
     return rmse, rnmse, mae, mape, r_squared
 
 
-#python statement to run with all the files
-#python3 price_forecast.py Turmeric_Maharashtra.csv Mustard_Rajasthan.csv Paddy_Chattisgarh.csv Greengram_UP.csv Cotton_Gujarat.csv DryChillies_AP.csv KabuliChana_MP.csv Sesamum_Gujarat.csv Cumin_Gujarat.csv Soybean_MP.csv Potato_UP.csv Groundnut_Guj.csv Jowar_Maharashtra.csv Lentil_MP.csv Maize_Chattisgarh.csv Arhar_Maharashtra.csv Onion_Maharashtra.csv Tomato_UP.csv Bengalgram_MP.csv Wheat_UP.csv Ragi_Karnataka.csv Coriander_Gujarat.csv Bajra_Guj.csv
+# python statement to run with all the files
+# python3 price_forecast.py Turmeric_Maharashtra.csv Mustard_Rajasthan.csv Paddy_Chattisgarh.csv Greengram_UP.csv Cotton_Gujarat.csv DryChillies_AP.csv KabuliChana_MP.csv Sesamum_Gujarat.csv Cumin_Gujarat.csv Soybean_MP.csv Potato_UP.csv Groundnut_Guj.csv Jowar_Maharashtra.csv Lentil_MP.csv Maize_Chattisgarh.csv Arhar_Maharashtra.csv Onion_Maharashtra.csv Tomato_UP.csv Bengalgram_MP.csv Wheat_UP.csv Ragi_Karnataka.csv Coriander_Gujarat.csv Bajra_Guj.csv
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) < 1:
         print("Usage: python price_forecast.py file1.csv file2.csv ...")
         sys.exit(1)
@@ -69,14 +68,6 @@ if __name__ == '__main__':
 
         train_data, test_data = train_test_split(data, test_size=0.2, shuffle=False)
 
-        scaler = MinMaxScaler()
-        train_data["Price"] = scaler.fit_transform(
-            train_data["Price"].values.reshape(-1, 1)
-        ).ravel()
-        test_data["Price"] = scaler.transform(
-            test_data["Price"].values.reshape(-1, 1)
-        ).ravel()
-
         def create_sequences(data, window_size):
             X, y = [], []
             for i in range(window_size, len(data)):
@@ -91,16 +82,13 @@ if __name__ == '__main__':
         X_test, y_test = create_sequences(
             test_data["Price"].values, window_size=window_size
         )
-        
 
-        original_y_test = scaler.inverse_transform(y_test.reshape(-1, 1)).ravel()
-        print(original_y_test[:5])
         print(y_test[:5])
-        series_values_dict["Actual"] = original_y_test
+        series_values_dict["Actual"] = y_test
 
         models = []
 
-        # # MLP
+        # MLP
         mlp_model = Sequential()
         mlp_model.add(Dense(128, input_dim=X_train.shape[1], activation="relu"))
         mlp_model.add(Dense(32, activation="relu"))
@@ -109,7 +97,7 @@ if __name__ == '__main__':
         mlp_model.fit(X_train, y_train, epochs=50, batch_size=32)
         models.append(("MLP", mlp_model))
 
-        # # GRU
+        # GRU
         gru_model = Sequential()
         gru_model.add(GRU(128, input_shape=(X_train.shape[1], 1)))
         gru_model.add(Dense(1))
@@ -125,7 +113,7 @@ if __name__ == '__main__':
         lstm_model.fit(X_train, y_train, epochs=50, batch_size=32)
         models.append(("LSTM", lstm_model))
 
-        # # RNN
+        # RNN
         rnn_model = Sequential()
         rnn_model.add(SimpleRNN(128, input_shape=(X_train.shape[1], 1)))
         rnn_model.add(Dense(1))
@@ -170,9 +158,7 @@ if __name__ == '__main__':
             r2 = r2_score(y_test, y_pred)
             rnmse = rmse / (np.max(y_test) - np.min(y_test))
 
-            original_y_pred = scaler.inverse_transform(y_pred.reshape(-1, 1)).ravel()
-            series_values_dict[name] = original_y_pred
-
+            series_values_dict[name] = y_pred
 
             results.append([name, rnmse, rmse, mae, mape, r2])
 
@@ -187,12 +173,10 @@ if __name__ == '__main__':
             # Make the prediction
             output = model_fit.forecast()
             yhat = output[0]
-            return yhat 
+            return yhat
 
         # Split data into train and test sets
         train, test = y_train.tolist(), y_test.tolist()
-
-        orginal_arima_test = scaler.inverse_transform(np.array(test).reshape(-1, 1)).ravel()
 
         # Walk-forward validation
         history = [x for x in train]
@@ -205,10 +189,8 @@ if __name__ == '__main__':
             obs = test[t]
             history.append(obs)
 
-        orginal_arima_pred = scaler.inverse_transform(np.array(predictions).reshape(-1, 1)).ravel()
-
-        series_values_dict["ARIMA Actual"] = orginal_arima_test
-        series_values_dict["ARIMA"] = orginal_arima_pred
+        series_values_dict["ARIMA Actual"] = test
+        series_values_dict["ARIMA"] = predictions
 
         rmse_arima = np.sqrt(mean_squared_error(test, predictions))
         mae_arima = mean_absolute_error(test, predictions)
