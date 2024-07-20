@@ -56,7 +56,7 @@ if __name__ == "__main__":
     for file in sys.argv[1:]:
         series_values_dict = {}
 
-        data = pd.read_csv("./data/" + file)
+        data = pd.read_csv(file)
         data.rename(
             columns={"Reported Date": "Date", "Modal Price (Rs./Quintal)": "Price"},
             inplace=True,
@@ -66,7 +66,7 @@ if __name__ == "__main__":
 
         print(data.head())
 
-        train_data, test_data = train_test_split(data, test_size=0.2, shuffle=False)
+        train_data, test_data = train_test_split(data, test_size=0.5, shuffle=False)
 
         def create_sequences(data, window_size):
             X, y = [], []
@@ -75,7 +75,7 @@ if __name__ == "__main__":
                 y.append(data[i])
             return np.array(X), np.array(y)
 
-        window_size = len(test_data) // 10
+        window_size = 20
         X_train, y_train = create_sequences(
             train_data["Price"].values, window_size=window_size
         )
@@ -158,7 +158,7 @@ if __name__ == "__main__":
             r2 = r2_score(y_test, y_pred)
             rnmse = rmse / (np.max(y_test) - np.min(y_test))
 
-            series_values_dict[name] = y_pred
+            series_values_dict[name] = y_pred.ravel()
 
             results.append([name, rnmse, rmse, mae, mape, r2])
 
@@ -208,5 +208,6 @@ if __name__ == "__main__":
         filename = file.split("/")[-1].split(".")[0]
         results_df.to_csv(f"outputs/{filename}_results.csv", index=False)
 
+        print(series_values_dict)
         series_values_df = pd.DataFrame(series_values_dict)
         series_values_df.to_csv("./series_values/" + file, index=False)
