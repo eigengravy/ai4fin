@@ -22,6 +22,44 @@ from pmdarima.arima import auto_arima
 from statsmodels.tsa.arima.model import ARIMA
 
 
+def hybrid_arima_ann(train_data, test_data, arima_order=(1, 1, 1), nn_units=[64, 32]):
+    # Fit ARIMA model
+    arima_model = ARIMA(train_data, order=arima_order)
+    arima_result = arima_model.fit()
+
+    # Generate ARIMA predictions for train and test data
+    arima_train_pred = arima_result.predict(start=0, end=len(train_data) - 1)
+    arima_test_pred = arima_result.forecast(steps=len(test_data))
+
+    # Calculate residuals
+    train_residuals = train_data - arima_train_pred
+
+    # Prepare data for ANN
+    X_train = np.array(train_residuals[:-1]).reshape(-1, 1)
+    y_train = np.array(train_residuals[1:]).reshape(-1, 1)
+
+    # Create and train ANN model
+    ann_model = Sequential()
+    for units in nn_units:
+        ann_model.add(Dense(units, activation="relu"))
+    ann_model.add(Dense(1))
+    ann_model.compile(optimizer="adam", loss="mse")
+    ann_model.fit(X_train, y_train, epochs=100, batch_size=32, verbose=0)
+
+    # Make final predictions
+    arima_predictions = arima_test_pred
+    last_residual = train_residuals[-1]
+    ann_predictions = []
+
+    for arima_pred in arima_predictions:
+        ann_pred = ann_model.predict(np.array([[last_residual]]))
+        hybrid_pred = arima_pred + ann_pred[0][0]
+        ann_predictions.append(hybrid_pred)
+        last_residual = hybrid_pred - arima_pred
+
+    return np.array(ann_predictions)
+
+
 def calculate_metrics(actual, predicted):
     actual = np.array(actual)
     predicted = np.array(predicted)
@@ -66,7 +104,7 @@ if __name__ == "__main__":
 
         print(data.head())
 
-        train_data, test_data = train_test_split(data, test_size=0.5, shuffle=False)
+        train_data, test_data = train_test_split(data, test_size=0.8, shuffle=False)
 
         def create_sequences(data, window_size):
             X, y = [], []
@@ -143,7 +181,14 @@ if __name__ == "__main__":
         esn.fit(X_train, y_train.reshape(-1, 1))
         models.append(("ESN", esn))
 
+        # Inside the main loop, after creating other models
+        hybrid_predictions = hybrid_arima_ann(
+            train_data["Price"].values,
+            test_data["Price"].values,
+        )[window_size:]
+
         results = []
+
         for name, model in models:
             if name in ["MLP", "XGBoost", "LinearRegression", "SVR"]:
                 y_pred = model.predict(X_test)
@@ -161,8 +206,6 @@ if __name__ == "__main__":
             series_values_dict[name] = y_pred.ravel()
 
             results.append([name, rnmse, rmse, mae, mape, r2])
-
-        # Running ARIMA
 
         # Define the ARIMA model
         def arima_forecast(history):
@@ -191,16 +234,40 @@ if __name__ == "__main__":
 
         series_values_dict["ARIMA Actual"] = test
         series_values_dict["ARIMA"] = predictions
+        series_values_dict["Hybrid ARIMA-ANN"] = hybrid_predictions
 
         rmse_arima = np.sqrt(mean_squared_error(test, predictions))
         mae_arima = mean_absolute_error(test, predictions)
         mape_arima = mean_absolute_percentage_error(test, predictions) * 100
         r_squared_arima = r2_score(test, predictions)
-        rnmse_arima = rmse_arima / (np.max(test) - np.min(predictions))
+        rnmse_arima = rmse_arima / (np.max(predictions) - np.min(predictions))
 
         results.append(
             ["ARIMA", rnmse_arima, rmse_arima, mae_arima, mape_arima, r_squared_arima]
         )
+
+        # print("DEBUG`")
+        # print(len(test))
+        # print(hybrid_predictions.shape)
+        # print(hybrid_predictions)
+        # print(test)
+        rmse_hybrid = np.sqrt(mean_squared_error(test, hybrid_predictions))
+        mae_hybrid = mean_absolute_error(test, hybrid_predictions)
+        mape_hybrid = mean_absolute_percentage_error(test, hybrid_predictions) * 100
+        r_squared_hybrid = r2_score(test, hybrid_predictions)
+        rnmse_hybrid = rmse_hybrid / (np.max(predictions) - np.min(hybrid_predictions))
+
+        results.append(
+            [
+                "Hybrid ARIMA-ANN",
+                rnmse_hybrid,
+                rmse_hybrid,
+                mae_hybrid,
+                mape_hybrid,
+                r_squared_hybrid,
+            ]
+        )
+
         columns = ["Model", "RNMSE", "RMSE", "MAE", "MAPE", "R2"]
         results_df = pd.DataFrame(results, columns=columns)
         print(results_df.to_string(index=False))
@@ -210,4 +277,4 @@ if __name__ == "__main__":
 
         print(series_values_dict)
         series_values_df = pd.DataFrame(series_values_dict)
-        series_values_df.to_csv("./series_values/" + file, index=False)
+        series_values_df.to_csv("series_values/" + file, index=False)
