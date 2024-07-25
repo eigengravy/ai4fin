@@ -22,63 +22,15 @@ from pmdarima.arima import auto_arima
 from statsmodels.tsa.arima.model import ARIMA
 
 
-def hybrid_arima_ann(train_data, test_data, arima_order=(1, 1, 1), nn_units=[64, 32]):
-    # Fit ARIMA model
-    arima_model = ARIMA(train_data, order=arima_order)
-    arima_result = arima_model.fit()
-
-    # Generate ARIMA predictions for train and test data
-    arima_train_pred = arima_result.predict(start=0, end=len(train_data) - 1)
-    arima_test_pred = arima_result.forecast(steps=len(test_data))
-
-    # Calculate residuals
-    train_residuals = train_data - arima_train_pred
-
-    # Prepare data for ANN
-    X_train = np.array(train_residuals[:-1]).reshape(-1, 1)
-    y_train = np.array(train_residuals[1:]).reshape(-1, 1)
-
-    # Create and train ANN model
-    ann_model = Sequential()
-    for units in nn_units:
-        ann_model.add(Dense(units, activation="relu"))
-    ann_model.add(Dense(1))
-    ann_model.compile(optimizer="adam", loss="mse")
-    ann_model.fit(X_train, y_train, epochs=100, batch_size=32, verbose=0)
-
-    # Make final predictions
-    arima_predictions = arima_test_pred
-    last_residual = train_residuals[-1]
-    ann_predictions = []
-
-    for arima_pred in arima_predictions:
-        ann_pred = ann_model.predict(np.array([[last_residual]]))
-        hybrid_pred = arima_pred + ann_pred[0][0]
-        ann_predictions.append(hybrid_pred)
-        last_residual = hybrid_pred - arima_pred
-
-    return np.array(ann_predictions)
-
-
 def calculate_metrics(actual, predicted):
     actual = np.array(actual)
     predicted = np.array(predicted)
 
-    # RMSE
     rmse = np.sqrt(mean_squared_error(actual, predicted))
-
-    # Relative RMSE (RRMSE)
     rnmse = rmse / (np.max(actual) - np.min(actual))
-
-    # MAE
     mae = mean_absolute_error(actual, predicted)
-
-    # MAPE
     mape = np.mean(np.abs((actual - predicted) / actual)) * 100
-
-    # R-squared
     r_squared = r2_score(actual, predicted)
-
     return rmse, rnmse, mae, mape, r_squared
 
 
@@ -104,7 +56,7 @@ if __name__ == "__main__":
 
         print(data.head())
 
-        train_data, test_data = train_test_split(data, test_size=0.8, shuffle=False)
+        train_data, test_data = train_test_split(data, test_size=0.2, shuffle=False)
 
         def create_sequences(data, window_size):
             X, y = [], []
@@ -113,7 +65,7 @@ if __name__ == "__main__":
                 y.append(data[i])
             return np.array(X), np.array(y)
 
-        window_size = 20
+        window_size = 5
         X_train, y_train = create_sequences(
             train_data["Price"].values, window_size=window_size
         )
@@ -121,7 +73,6 @@ if __name__ == "__main__":
             test_data["Price"].values, window_size=window_size
         )
 
-        print(y_test[:5])
         series_values_dict["Actual"] = y_test
 
         models = []
@@ -181,16 +132,56 @@ if __name__ == "__main__":
         esn.fit(X_train, y_train.reshape(-1, 1))
         models.append(("ESN", esn))
 
-        # Inside the main loop, after creating other models
-        hybrid_predictions = hybrid_arima_ann(
-            train_data["Price"].values,
-            test_data["Price"].values,
-        )[window_size:]
+        # Add Hybrid ARIMA-ANN model
+        # Fit ARIMA model on training data
+        arima_model = ARIMA(train_data["Price"], order=(1, 1, 1))
+        arima_result = arima_model.fit()
+
+        # Get ARIMA residuals for training data
+        arima_residuals = arima_result.resid.values
+
+        # Prepare data for ANN
+        X_train_hybrid, y_train_hybrid = create_sequences(
+            arima_residuals, window_size=window_size
+        )
+        X_train_hybrid = np.reshape(
+            X_train_hybrid, (X_train_hybrid.shape[0], X_train_hybrid.shape[1], 1)
+        )
+
+        # Build ANN model
+        hybrid_model = Sequential(
+            [LSTM(50, activation="relu", input_shape=(window_size, 1)), Dense(1)]
+        )
+        hybrid_model.compile(optimizer="adam", loss="mse")
+
+        # Train the model
+        hybrid_model.fit(X_train_hybrid, y_train_hybrid, epochs=50, batch_size=32)
+
+        # Make predictions on test set
+        arima_forecast = arima_result.forecast(steps=len(test_data))
+
+        X_test_hybrid = np.array(
+            [
+                arima_forecast[i : i + window_size]
+                for i in range(len(arima_forecast) - window_size)
+            ]
+        )
+        X_test_hybrid = np.reshape(
+            X_test_hybrid, (X_test_hybrid.shape[0], X_test_hybrid.shape[1], 1)
+        )
+
+        ann_forecast = hybrid_model.predict(X_test_hybrid).flatten()
+
+        hybrid_forecast = arima_forecast[window_size:] + ann_forecast
+
+        models.append(("Hybrid ARIMA-ANN", hybrid_forecast))
 
         results = []
 
         for name, model in models:
-            if name in ["MLP", "XGBoost", "LinearRegression", "SVR"]:
+            if name == "Hybrid ARIMA-ANN":  # For Hybrid ARIMA-ANN
+                y_pred = model
+            elif name in ["MLP", "XGBoost", "LinearRegression", "SVR"]:
                 y_pred = model.predict(X_test)
             elif name == "ESN":
                 y_pred = model.run(X_test)
@@ -234,7 +225,6 @@ if __name__ == "__main__":
 
         series_values_dict["ARIMA Actual"] = test
         series_values_dict["ARIMA"] = predictions
-        series_values_dict["Hybrid ARIMA-ANN"] = hybrid_predictions
 
         rmse_arima = np.sqrt(mean_squared_error(test, predictions))
         mae_arima = mean_absolute_error(test, predictions)
@@ -244,28 +234,6 @@ if __name__ == "__main__":
 
         results.append(
             ["ARIMA", rnmse_arima, rmse_arima, mae_arima, mape_arima, r_squared_arima]
-        )
-
-        # print("DEBUG`")
-        # print(len(test))
-        # print(hybrid_predictions.shape)
-        # print(hybrid_predictions)
-        # print(test)
-        rmse_hybrid = np.sqrt(mean_squared_error(test, hybrid_predictions))
-        mae_hybrid = mean_absolute_error(test, hybrid_predictions)
-        mape_hybrid = mean_absolute_percentage_error(test, hybrid_predictions) * 100
-        r_squared_hybrid = r2_score(test, hybrid_predictions)
-        rnmse_hybrid = rmse_hybrid / (np.max(predictions) - np.min(hybrid_predictions))
-
-        results.append(
-            [
-                "Hybrid ARIMA-ANN",
-                rnmse_hybrid,
-                rmse_hybrid,
-                mae_hybrid,
-                mape_hybrid,
-                r_squared_hybrid,
-            ]
         )
 
         columns = ["Model", "RNMSE", "RMSE", "MAE", "MAPE", "R2"]
